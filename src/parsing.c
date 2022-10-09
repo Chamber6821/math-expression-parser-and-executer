@@ -1,0 +1,36 @@
+#include <stdio.h>
+#include <ctype.h>
+#include "parsing.h"
+
+source_t *skipSpaces(source_t *source) {
+    while (!isEnd(source) && isspace(*source->marker))
+        source->marker++;
+    return source;
+}
+
+token_t parseToken(source_t *source) {
+    skipSpaces(source);
+
+    while (!isEnd(source)) {
+        char ch = get(source);
+
+        source->marker++;
+        switch (ch) {
+            case '(': return onlyType(OPEN_PAR);
+            case ')': return onlyType(CLOSE_PAR);
+            case '+': return binOperator(ADD);
+            case '*': return binOperator(MULTIPLY);
+            default: break;
+        }
+        source->marker--;
+
+        int value, read = 0;
+        int scanned = sscanf_s(source->marker, "%i%n", &value, &read);
+        if (scanned >= 1) {
+            source->marker += read;
+            return number(value);
+        }
+    }
+
+    return onlyType(END);
+}
