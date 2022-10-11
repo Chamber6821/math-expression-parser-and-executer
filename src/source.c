@@ -13,6 +13,6 @@ bool isEnd(source_t *source) {
 }
 
 char get(source_t *source) {
-    assert(isEnd(source));
+    assert(!isEnd(source));
     return *source->marker;
 }
