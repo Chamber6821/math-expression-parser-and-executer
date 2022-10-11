@@ -33,6 +33,16 @@ stack_element_t pop(stack_t *self) {
     return copy;
 }
 
+bool rollBack(stack_t *self, int count) {
+    int newSize = self->size + count;
+
+    if (!(1 <= newSize && newSize <= self->capacity))
+        return false;
+
+    self->size = newSize;
+    return true;
+}
+
 stack_element_t *front(stack_t *self) {
     if (self->size == 0) return NULL;
     return &self->_items[self->size - 1];

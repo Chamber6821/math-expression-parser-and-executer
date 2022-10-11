@@ -17,6 +17,7 @@ void free_stack(stack_t *self);
 
 bool push(stack_t *self, stack_element_t element);
 stack_element_t pop(stack_t *self);
+bool rollBack(stack_t *self, int count);
 
 stack_element_t *front(stack_t *self);
 bool reserve(stack_t *self, int capacity);
