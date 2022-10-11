@@ -55,3 +55,15 @@ bool reserve(stack_t *self, int capacity) {
     self->capacity = newCapacity;
     return true;
 }
+
+stack_t *reverse_stack(stack_t *self) {
+    stack_element_t *items = self->_items;
+    int size = self->size;
+    for (int i = 0; i < size / 2; i++) {
+        stack_element_t buffer = items[i];
+        items[i] = items[size - i - 1];
+        items[size - i - 1] = buffer;
+    }
+
+    return self;
+}

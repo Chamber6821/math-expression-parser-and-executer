@@ -20,3 +20,4 @@ stack_element_t pop(stack_t *self);
 
 stack_element_t *front(stack_t *self);
 bool reserve(stack_t *self, int capacity);
+stack_t *reverse_stack(stack_t *self);
