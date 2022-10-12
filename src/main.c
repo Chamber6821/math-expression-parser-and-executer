@@ -41,11 +41,14 @@ void free_node(expression_node_t *node) {
     }
 }
 
-enum node_type binOperatorToNodeType(enum bin_operator operator) {
+enum node_type operatorToNodeType(enum token_type operator) {
     switch (operator) {
-        case ADD: return NT_ADD;
-        case MULTIPLY: return NT_MULTIPLY;
-        default: assert(!"NOT DEFINED");
+        case BIN_ADD: return NT_ADD;
+        case BIN_MULTIPLY: return NT_MULTIPLY;
+        default: {
+            assert(!"NOT DEFINED");
+            abort();
+        }
     }
 }
 
@@ -55,13 +58,6 @@ struct build_result {
     bool success;
     expression_node_t *node;
 };
-
-build_result_t make_build_result(int read, expression_node_t *node) {
-    return (build_result_t) {
-            .read = read,
-            .node = node,
-    };
-}
 
 build_result_t success(int read, expression_node_t *node) {
     return (build_result_t) {
@@ -101,13 +97,8 @@ build_result_t tryBuildExpression(stack_t *source) {
         int read = 0;
 
         token_t token;
-        if (!tryMatchByType(source, BIN_OPERATOR, &token)) break;
+        if (!tryMatchByType(source, BIN_ADD, &token)) break;
         read += 1;
-
-        if (token.binOperator != ADD) {
-            rollBack(source, read);
-            break;
-        }
 
         build_result_t right = tryBuildTerm(source);
         read += right.read;
@@ -117,7 +108,7 @@ build_result_t tryBuildExpression(stack_t *source) {
         }
 
         expression_node_t *newNode = malloc(sizeof(expression_node_t));
-        newNode->type = binOperatorToNodeType(token.binOperator);
+        newNode->type = operatorToNodeType(token.type);
 
         newNode->children[0] = result.node;
         newNode->children[1] = right.node;
@@ -136,11 +127,7 @@ build_result_t tryBuildTerm(stack_t *source) {
 
     while (source->size != 0) {
         token_t token;
-        if (!tryMatchByType(source, BIN_OPERATOR, &token)) break;
-        if (token.binOperator != MULTIPLY) {
-            rollBack(source, 1);
-            break;
-        }
+        if (!tryMatchByType(source, BIN_MULTIPLY, &token)) break;
 
         build_result_t right = tryBuildFactor(source);
         if (!isSuccess(right)) {
@@ -149,7 +136,7 @@ build_result_t tryBuildTerm(stack_t *source) {
         }
 
         expression_node_t *newNode = malloc(sizeof(expression_node_t));
-        newNode->type = binOperatorToNodeType(token.binOperator);
+        newNode->type = operatorToNodeType(token.type);
 
         newNode->children[0] = result.node;
         newNode->children[1] = right.node;

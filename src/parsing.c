@@ -18,8 +18,8 @@ token_t parseToken(source_t *source) {
         switch (ch) {
             case '(': return onlyType(OPEN_PAR);
             case ')': return onlyType(CLOSE_PAR);
-            case '+': return binOperator(ADD);
-            case '*': return binOperator(MULTIPLY);
+            case '+': return onlyType(BIN_ADD);
+            case '*': return onlyType(BIN_MULTIPLY);
             default: break;
         }
         source->marker--;
