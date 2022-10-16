@@ -1,83 +1,15 @@
-#pragma clang diagnostic push
-#pragma ide diagnostic ignored "misc-no-recursion"
-
 #include <stdio.h>
-#include <assert.h>
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
-#include "token.h"
 #include "to-string.h"
 #include "source.h"
 #include "parsing.h"
 #include "stack.h"
+#include "build_result.h"
+#include "node.h"
+#include "print.h"
 
-enum node_type {
-    NT_NUMBER, NT_ADD, NT_MULTIPLY,
-};
-
-typedef struct expression_node expression_node_t;
-struct expression_node {
-    enum node_type type;
-    union {
-        int number;
-        expression_node_t *children[2];
-    };
-};
-
-void free_node(expression_node_t *node) {
-    switch (node->type) {
-        case NT_NUMBER: {
-            free(node);
-            break;
-        }
-        case NT_ADD:
-        case NT_MULTIPLY: {
-            free_node(node->children[0]);
-            free_node(node->children[1]);
-            free(node);
-            break;
-        }
-    }
-}
-
-enum node_type operatorToNodeType(enum token_type operator) {
-    switch (operator) {
-        case BIN_ADD: return NT_ADD;
-        case BIN_MULTIPLY: return NT_MULTIPLY;
-        default: {
-            assert(!"NOT DEFINED");
-            abort();
-        }
-    }
-}
-
-typedef struct build_result build_result_t;
-struct build_result {
-    int read;
-    bool success;
-    expression_node_t *node;
-};
-
-build_result_t success(int read, expression_node_t *node) {
-    return (build_result_t) {
-            .read = read,
-            .success = true,
-            .node = node,
-    };
-}
-
-build_result_t failure() {
-    return (build_result_t) {
-            .read = 0,
-            .success = false,
-            .node = NULL
-    };
-}
-
-bool isSuccess(build_result_t result) {
-    return result.success;
-}
 
 build_result_t tryBuildExpression(stack_t *source);
 build_result_t tryBuildTerm(stack_t *source);
@@ -85,136 +17,129 @@ build_result_t tryBuildFactor(stack_t *source);
 build_result_t tryBuildPrimary(stack_t *source);
 
 build_result_t tryBuildNumber(stack_t *source);
-bool tryMatchByType(stack_t *source, enum token_type type, token_t *out);
+build_result_t tryBuildByTokenType(stack_t *source, enum token_type type);
 
-build_result_t tryBuildExpression(stack_t *source) {
-    build_result_t result;
+build_result_t tryBuildExpression(stack_t *source) { // NOLINT(misc-no-recursion)
+    build_result_t result = failure(), new;
 
-    result = tryBuildTerm(source);
-    if (!isSuccess(result)) return failure();
+    new = tryBuildTerm(source);
+    if (!isSuccess(new)) {
+        revert(source, result);
+        return failure();
+    }
+    set(&result, new);
 
     while (source->size != 0) {
-        int read = 0;
+        new = tryBuildByTokenType(source, BIN_ADD);
+        if (!isSuccess(new)) {
+            break;
+        }
+        add(&result, new);
 
-        token_t token;
-        if (!tryMatchByType(source, BIN_ADD, &token)) break;
-        read += 1;
+        enum token_type type = new.node->token.type;
 
-        build_result_t right = tryBuildTerm(source);
-        read += right.read;
-        if (!isSuccess(right)) {
-            rollBack(source, read);
+        new = tryBuildTerm(source);
+        if (!isSuccess(new)) {
+            //FIXME: Не нужно откатывать все изменения
+            revert(source, result);
             break;
         }
 
-        expression_node_t *newNode = malloc(sizeof(expression_node_t));
-        newNode->type = operatorToNodeType(token.type);
-
-        newNode->children[0] = result.node;
-        newNode->children[1] = right.node;
-        result.node = newNode;
-        result.read += right.read + 1;
+        result.node = makeOperator(type, result.node, new.node);
+        result.read += new.read;
     }
 
     return result;
 }
 
-build_result_t tryBuildTerm(stack_t *source) {
-    build_result_t result;
+build_result_t tryBuildTerm(stack_t *source) { // NOLINT(misc-no-recursion)
+    build_result_t result = failure(), new;
 
-    result = tryBuildFactor(source);
-    if (!isSuccess(result)) return failure();
+    new = tryBuildFactor(source);
+    if (!isSuccess(new)) {
+        revert(source, result);
+        return failure();
+    }
+    set(&result, new);
 
     while (source->size != 0) {
-        token_t token;
-        if (!tryMatchByType(source, BIN_MULTIPLY, &token)) break;
+        new = tryBuildByTokenType(source, BIN_MULTIPLY);
+        if (!isSuccess(new)) {
+            break;
+        }
+        add(&result, new);
 
-        build_result_t right = tryBuildFactor(source);
-        if (!isSuccess(right)) {
-            rollBack(source, 1);
+        enum token_type type = new.node->token.type;
+
+        new = tryBuildTerm(source);
+        if (!isSuccess(new)) {
+            //FIXME: Не нужно откатывать все изменения
+            revert(source, result);
             break;
         }
 
-        expression_node_t *newNode = malloc(sizeof(expression_node_t));
-        newNode->type = operatorToNodeType(token.type);
-
-        newNode->children[0] = result.node;
-        newNode->children[1] = right.node;
-        result.node = newNode;
-        result.read += right.read + 1;
+        result.node = makeOperator(type, result.node, new.node);
+        result.read += new.read;
     }
 
     return result;
 }
 
-build_result_t tryBuildFactor(stack_t *source) {
+build_result_t tryBuildFactor(stack_t *source) { // NOLINT(misc-no-recursion)
     return tryBuildPrimary(source);
 }
 
-build_result_t tryBuildPrimary(stack_t *source) {
-    build_result_t result;
+build_result_t tryBuildPrimary(stack_t *source) { // NOLINT(misc-no-recursion)
+    build_result_t result = failure(), new;
 
-    result = tryBuildNumber(source);
-    if (isSuccess(result)) return result;
+    new = tryBuildNumber(source);
+    if (isSuccess(new)) return new;
 
-    if (!tryMatchByType(source, OPEN_PAR, NULL)) return failure();
-
-    result = tryBuildExpression(source);
-    if (!isSuccess(result)) {
-        rollBack(source, 1);
+    new = tryBuildByTokenType(source, OPEN_PAR);
+    if (!isSuccess(new)) {
+        revert(source, result);
         return failure();
     }
+    add(&result, new);
 
-    if (!tryMatchByType(source, CLOSE_PAR, NULL)) {
-        rollBack(source, result.read + 1);
+    new = tryBuildExpression(source);
+    if (!isSuccess(new)) {
+        revert(source, result);
         return failure();
     }
+    set(&result, new);
 
-    return success(result.read + 2, result.node);
+    new = tryBuildByTokenType(source, CLOSE_PAR);
+    if (!isSuccess(new)) {
+        revert(source, result);
+        return failure();
+    }
+    add(&result, new);
+
+    return result;
 }
 
 build_result_t tryBuildNumber(stack_t *source) {
-    token_t token;
-    if (!tryMatchByType(source, NUMBER, &token)) return failure();
+    build_result_t result = failure(), new;
 
-    expression_node_t *node = malloc(sizeof(expression_node_t));
-    node->type = NT_NUMBER;
-    node->number = token.number;
-    return success(1, node);
-}
-
-bool tryMatchByType(stack_t *source, enum token_type type, token_t *out) {
-    if (source->size == 0 || front(source)->type != type) return false;
-
-    if (out != NULL) *out = *front(source);
-    pop(source);
-    return true;
-}
-
-void printToken(token_t token) {
-    char buffer[100];
-    printf("%s", tokenToString(token, buffer));
-}
-
-void printNode(expression_node_t *node, FILE *out) {
-    switch (node->type) {
-        case NT_NUMBER: {
-            fprintf(out, "%d ", node->number);
-            break;
-        }
-        case NT_ADD: {
-            fprintf(out, "+ ");
-            printNode(node->children[0], out);
-            printNode(node->children[1], out);
-            break;
-        }
-        case NT_MULTIPLY: {
-            fprintf(out, "* ");
-            printNode(node->children[0], out);
-            printNode(node->children[1], out);
-            break;
-        }
+    new = tryBuildByTokenType(source, NUMBER);
+    if (!isSuccess(new)) {
+        revert(source, result);
+        return failure();
     }
+    set(&result, new);
+
+    return result;
+}
+
+build_result_t tryBuildByTokenType(stack_t *source, enum token_type type) {
+    if (source->size == 0) return failure();
+
+    token_t token = *front(source);
+    if (token.type != type) return failure();
+
+    pop(source);
+    return success(1, nodeFromToken(token));
 }
 
 void test(const char *input, const char *expected);
@@ -229,6 +154,9 @@ int main() {
     test("1 + 2 + 3  ", "+ + 1 2 3");
     test("1 + 2 + 3) ", "error");
     test("1 + (2 + 3 ", "error");
+    test("1 + 2 3 ", "error");
+    test("1 * 2 3 ", "error");
+    test("1 + 2 * 3 ", "+ 1 * 2 3");
 }
 
 static int testNumber = 0;
@@ -251,11 +179,11 @@ char *rebuildToPolish(const char *input, char *buffer, int bufferSize) {
         rewind(out);
         fgets(buffer, bufferSize, out);
         fclose(out);
+        free_node(result.node);
     } else {
         strcpy(buffer, "error");
     }
 
-    free_node(result.node);
     free_stack(stack);
     free(source);
 
@@ -272,10 +200,9 @@ char *lightTrimRight(char *str) {
 
 void test(const char *input, const char *expected) {
     char out[100];
-    printf("Test %d: ", testNumber);
+    printf("Test %2d: ", testNumber);
     rebuildToPolish(input, out, _countof(out));
     lightTrimRight(out);
-
 
     if (strcmp(out, expected) == 0) {
         printf("PASS\n");
@@ -285,6 +212,3 @@ void test(const char *input, const char *expected) {
 
     testNumber++;
 }
-
-
-#pragma clang diagnostic pop
