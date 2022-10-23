@@ -1,8 +1,6 @@
-#include <stdio.h>
 #include <malloc.h>
 #include <string.h>
 #include <ctype.h>
-#include "to-string.h"
 #include "source.h"
 #include "parsing.h"
 #include "stack.h"
@@ -11,6 +9,7 @@
 #include "print.h"
 #include "builder.h"
 #include "custom_builder.h"
+#include "calculate.h"
 
 
 void test(const char *input, const char *expected, builder_t **rules);
@@ -51,16 +50,25 @@ int main() {
     builder_t *rules[NN_COUNT_OF_NAMES] = {};
     createRules(rules);
 
-    test("1 + 2      ", "[[[[1]]] + [[[2]]]]", rules);
-    test("1 + 2 * 3  ", "[[[[1]]] + [[[2]] * [[3]]]]", rules);
-    test("1 + (2 * 3)", "[[[[1]]] + [[[( [[[[2]] * [[3]]]] )]]]]", rules);
-    test("(1 + 2) * 3", "[[[[( [[[[1]]] + [[[2]]]] )]] * [[3]]]]", rules);
-    test("1 + 2 + 3  ", "[[[[1]]] + [[[2]]] + [[[3]]]]", rules);
-    test("1 + (2 + 3)", "[[[[1]]] + [[[( [[[[2]]] + [[[3]]]] )]]]]", rules);
-    test("1 + 2 + 3) ", "error", rules);
-    test("1 + (2 + 3 ", "error", rules);
-    test("1 + 2 3    ", "error", rules);
-    test("1 * 2 3    ", "error", rules);
+    char input[100];
+    gets(input);
+
+    stack_t *tokenStack = parseAllTokens(input);
+    node_t *expr = buildByRules(rules, tokenStack).node;
+    int result = calculate(expr);
+
+    printf("%s = %d\n", input, result);
+
+//    test("1 + 2      ", "[[[[1]]] + [[[2]]]]", rules);
+//    test("1 + 2 * 3  ", "[[[[1]]] + [[[2]] * [[3]]]]", rules);
+//    test("1 + (2 * 3)", "[[[[1]]] + [[[( [[[[2]] * [[3]]]] )]]]]", rules);
+//    test("(1 + 2) * 3", "[[[[( [[[[1]]] + [[[2]]]] )]] * [[3]]]]", rules);
+//    test("1 + 2 + 3  ", "[[[[1]]] + [[[2]]] + [[[3]]]]", rules);
+//    test("1 + (2 + 3)", "[[[[1]]] + [[[( [[[[2]]] + [[[3]]]] )]]]]", rules);
+//    test("1 + 2 + 3) ", "error", rules);
+//    test("1 + (2 + 3 ", "error", rules);
+//    test("1 + 2 3    ", "error", rules);
+//    test("1 * 2 3    ", "error", rules);
 }
 
 static int testNumber = 0;
