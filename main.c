@@ -21,5 +21,5 @@ int main() {
         return -1;
     }
 
-    printf("%lf\n", calculate(expr));
+    printf("%.lg\n", calculate(expr));
 }
