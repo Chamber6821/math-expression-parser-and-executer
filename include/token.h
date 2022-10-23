@@ -6,7 +6,10 @@ enum token_type {
     CLOSE_PAR,
     END,
     BIN_ADD,
+    BIN_SUB,
     BIN_MULTIPLY,
+    BIN_DIVIDE,
+    BIN_MODE,
 };
 
 typedef struct token token_t;

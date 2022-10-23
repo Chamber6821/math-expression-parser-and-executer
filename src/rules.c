@@ -5,13 +5,18 @@ builder_t **createRules(builder_t **rules) {
     rules[NN_EXPRESSION] = seq(2,
                                node(NN_TERM, rules),
                                zero_or_more(seq(2,
-                                                token(BIN_ADD),
+                                                or(2,
+                                                   token(BIN_ADD),
+                                                   token(BIN_SUB)),
                                                 node(NN_TERM, rules))));
 
     rules[NN_TERM] = seq(2,
                          node(NN_FACTOR, rules),
                          zero_or_more(seq(2,
-                                          token(BIN_MULTIPLY),
+                                          or(3,
+                                             token(BIN_MULTIPLY),
+                                             token(BIN_DIVIDE),
+                                             token(BIN_MODE)),
                                           node(NN_FACTOR, rules))));
 
     rules[NN_FACTOR] = node(NN_PRIMARY, rules);

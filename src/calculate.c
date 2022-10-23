@@ -29,6 +29,10 @@ int calculateExpression(node_t *node) { // NOLINT(misc-no-recursion)
                 acc += number;
                 break;
             }
+            case BIN_SUB: {
+                acc -= number;
+                break;
+            }
             default: assert(!"Unexpected token type");
         }
     }
@@ -46,6 +50,14 @@ int calculateTerm(node_t *node) { // NOLINT(misc-no-recursion)
         switch (operator) {
             case BIN_MULTIPLY: {
                 acc *= number;
+                break;
+            }
+            case BIN_DIVIDE: {
+                acc /= number;
+                break;
+            }
+            case BIN_MODE: {
+                acc %= number;
                 break;
             }
             default: assert(!"Unexpected token type");

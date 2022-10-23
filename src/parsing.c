@@ -21,7 +21,10 @@ token_t parseToken(source_t *source) {
         case '(': return onlyType(OPEN_PAR);
         case ')': return onlyType(CLOSE_PAR);
         case '+': return onlyType(BIN_ADD);
+        case '-': return onlyType(BIN_SUB);
         case '*': return onlyType(BIN_MULTIPLY);
+        case '/': return onlyType(BIN_DIVIDE);
+        case '%': return onlyType(BIN_MODE);
         default: {
             source->marker--;
             break;
