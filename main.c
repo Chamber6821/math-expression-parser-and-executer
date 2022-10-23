@@ -16,7 +16,7 @@ int main() {
 
     stack_t *tokenStack = parseAllTokens(input);
     node_t *expr = buildByRules(rules, tokenStack).node;
-    int result = calculate(expr);
+    token_number_t result = calculate(expr);
 
-    printf("%s = %d\n", input, result);
+    printf("%s = %lf\n", input, result);
 }

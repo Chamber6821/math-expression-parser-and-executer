@@ -9,16 +9,15 @@ enum token_type {
     BIN_SUB,
     BIN_MULTIPLY,
     BIN_DIVIDE,
-    BIN_MODE,
 };
+
+typedef double token_number_t;
 
 typedef struct token token_t;
 struct token {
     enum token_type type;
-    union {
-        int number;
-    };
+    token_number_t number;
 };
 
 token_t onlyType(enum token_type type);
-token_t number(int number);
+token_t number(token_number_t number);

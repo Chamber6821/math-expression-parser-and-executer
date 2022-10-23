@@ -2,9 +2,9 @@
 
 #include "node.h"
 
-int calculate(node_t *node);
+token_number_t calculate(node_t *node);
 
-int calculateExpression(node_t *node);
-int calculateTerm(node_t *node);
-int calculateFactor(node_t *node);
-int calculatePrimary(node_t *node);
+token_number_t calculateExpression(node_t *node);
+token_number_t calculateTerm(node_t *node);
+token_number_t calculateFactor(node_t *node);
+token_number_t calculatePrimary(node_t *node);

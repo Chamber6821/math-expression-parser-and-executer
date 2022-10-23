@@ -4,7 +4,7 @@
 const char *tokenToString(token_t token, char *buffer) {
     switch (token.type) {
         case NUMBER: {
-            sprintf(buffer, "%i", token.number);
+            sprintf(buffer, "%lf", token.number);
             return buffer;
         }
         case OPEN_PAR: return "(";

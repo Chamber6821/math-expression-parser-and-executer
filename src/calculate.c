@@ -3,7 +3,7 @@
 #include "calculate.h"
 
 
-int calculate(node_t *node) { // NOLINT(misc-no-recursion)
+token_number_t calculate(node_t *node) { // NOLINT(misc-no-recursion)
     assert(node != NULL);
     switch (node->name) {
         case NN_EXPRESSION: return calculateExpression(node);
@@ -17,12 +17,12 @@ int calculate(node_t *node) { // NOLINT(misc-no-recursion)
     }
 }
 
-int calculateExpression(node_t *node) { // NOLINT(misc-no-recursion)
-    int acc = calculate(node->children->items[0]);
+token_number_t calculateExpression(node_t *node) { // NOLINT(misc-no-recursion)
+    token_number_t acc = calculate(node->children->items[0]);
 
     for (int i = 1; i < node->children->size; i += 2) {
         enum token_type operator = node->children->items[i]->token.type;
-        int number = calculate(node->children->items[i + 1]);
+        token_number_t number = calculate(node->children->items[i + 1]);
 
         switch (operator) {
             case BIN_ADD: {
@@ -40,12 +40,12 @@ int calculateExpression(node_t *node) { // NOLINT(misc-no-recursion)
     return acc;
 }
 
-int calculateTerm(node_t *node) { // NOLINT(misc-no-recursion)
-    int acc = calculate(node->children->items[0]);
+token_number_t calculateTerm(node_t *node) { // NOLINT(misc-no-recursion)
+    token_number_t acc = calculate(node->children->items[0]);
 
     for (int i = 1; i < node->children->size; i += 2) {
         enum token_type operator = node->children->items[i]->token.type;
-        int number = calculate(node->children->items[i + 1]);
+        token_number_t number = calculate(node->children->items[i + 1]);
 
         switch (operator) {
             case BIN_MULTIPLY: {
@@ -56,10 +56,6 @@ int calculateTerm(node_t *node) { // NOLINT(misc-no-recursion)
                 acc /= number;
                 break;
             }
-            case BIN_MODE: {
-                acc %= number;
-                break;
-            }
             default: assert(!"Unexpected token type");
         }
     }
@@ -67,11 +63,11 @@ int calculateTerm(node_t *node) { // NOLINT(misc-no-recursion)
     return acc;
 }
 
-int calculateFactor(node_t *node) { // NOLINT(misc-no-recursion)
+token_number_t calculateFactor(node_t *node) { // NOLINT(misc-no-recursion)
     return calculate(node->children->items[0]);
 }
 
-int calculatePrimary(node_t *node) { // NOLINT(misc-no-recursion)
+token_number_t calculatePrimary(node_t *node) { // NOLINT(misc-no-recursion)
     if (node->children->size == 1) {
         return node->children->items[0]->token.number;
     }

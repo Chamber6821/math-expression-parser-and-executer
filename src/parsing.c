@@ -24,15 +24,15 @@ token_t parseToken(source_t *source) {
         case '-': return onlyType(BIN_SUB);
         case '*': return onlyType(BIN_MULTIPLY);
         case '/': return onlyType(BIN_DIVIDE);
-        case '%': return onlyType(BIN_MODE);
         default: {
             source->marker--;
             break;
         }
     }
 
-    int value, read = 0;
-    int scanned = sscanf_s(source->marker, "%i%n", &value, &read);
+    token_number_t value;
+    int read = 0;
+    int scanned = sscanf_s(source->marker, "%lf%n", &value, &read);
     if (scanned >= 1) {
         source->marker += read;
         return number(value);
