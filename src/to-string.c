@@ -12,6 +12,7 @@ const char *tokenToString(token_t token, char *buffer) {
         case END: return "<-";
         case BIN_ADD: return "+";
         case BIN_MULTIPLY: return "*";
-        default: "NOT-DEFINED-TOKEN-TYPE";
+        default: return "NOT-DEFINED-TOKEN-TYPE";
     }
 }
+
