@@ -1,45 +1,50 @@
 #include <malloc.h>
-#include <assert.h>
 #include "node.h"
 
-void free_node(node_t *node) { // NOLINT(misc-no-recursion)
-    switch (node->type) {
-        case NT_ADD:
-        case NT_MULTIPLY: {
-            free_node(node->children[0]);
-            free_node(node->children[1]);
-            free(node);
-            break;
-        }
-        case NT_TOKEN: {
-            free(node);
-            break;
-        }
-    }
-}
-
-enum node_type operatorToNodeType(enum token_type operator) {
-    switch (operator) {
-        case BIN_ADD: return NT_ADD;
-        case BIN_MULTIPLY: return NT_MULTIPLY;
-        default: {
-            assert(!"NOT DEFINED");
-            abort();
-        }
-    }
-}
-
-node_t *makeOperator(enum token_type type, node_t *left, node_t *right) {
+node_t *new_node(enum node_name name) {
     node_t *new = malloc(sizeof(node_t));
-    new->type = operatorToNodeType(type);
-    new->children[0] = left;
-    new->children[1] = right;
+    new->name = name;
+    new->isToken = false;
+    new->children = NULL;
     return new;
 }
 
-node_t *nodeFromToken(token_t token) {
-    node_t *new = malloc(sizeof(node_t));
-    new->type = NT_TOKEN;
+node_t *nodeWithChildren(enum node_name name) {
+    node_t *new = new_node(name);
+    new->isToken = false;
+    new->children = new_vector();
+    return new;
+}
+
+node_t *nodeFromToken(enum node_name name, token_t token) {
+    node_t *new = new_node(name);
     new->token = token;
+    new->isToken = true;
     return new;
+}
+
+void free_node(node_t *node) { // NOLINT(misc-no-recursion)
+    if (node == NULL) return;
+
+    if (hasToken(node)) {
+        free(node);
+        return;
+    }
+
+    for (int i = 0; i < node->children->size; i++) {
+        free_node(node->children->items[i]);
+    }
+    free_vector(node->children);
+    free(node);
+}
+
+void free_nodeWithOutChildren(node_t *node) {
+    if (node == NULL) return;
+
+    if (!hasToken(node)) free_vector(node->children);
+    free(node);
+}
+
+bool hasToken(node_t *self) {
+    return self->isToken;
 }

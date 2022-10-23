@@ -9,169 +9,66 @@
 #include "build_result.h"
 #include "node.h"
 #include "print.h"
+#include "builder.h"
+#include "custom_builder.h"
 
 
-build_result_t tryBuildExpression(stack_t *source);
-build_result_t tryBuildTerm(stack_t *source);
-build_result_t tryBuildFactor(stack_t *source);
-build_result_t tryBuildPrimary(stack_t *source);
+void test(const char *input, const char *expected, builder_t **rules);
 
-build_result_t tryBuildNumber(stack_t *source);
-build_result_t tryBuildByTokenType(stack_t *source, enum token_type type);
+stack_t *parseAllTokens(const char *input);
 
-build_result_t tryBuildExpression(stack_t *source) { // NOLINT(misc-no-recursion)
-    build_result_t result = failure(), new;
+builder_t **createRules(builder_t **rules) {
+    rules[NN_EXPRESSION] = seq(2,
+                               node(NN_TERM, rules),
+                               zero_or_more(seq(2,
+                                                token(BIN_ADD),
+                                                node(NN_TERM, rules))));
 
-    new = tryBuildTerm(source);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    set(&result, new);
+    rules[NN_TERM] = seq(2,
+                         node(NN_FACTOR, rules),
+                         zero_or_more(seq(2,
+                                          token(BIN_MULTIPLY),
+                                          node(NN_FACTOR, rules))));
 
-    while (source->size != 0) {
-        new = tryBuildByTokenType(source, BIN_ADD);
-        if (!isSuccess(new)) {
-            break;
-        }
-        add(&result, new);
+    rules[NN_FACTOR] = node(NN_PRIMARY, rules);
 
-        enum token_type type = new.node->token.type;
+    rules[NN_PRIMARY] = or(2,
+                           token(NUMBER),
+                           seq(3,
+                               token(OPEN_PAR),
+                               node(NN_EXPRESSION, rules),
+                               token(CLOSE_PAR)));
 
-        new = tryBuildTerm(source);
-        if (!isSuccess(new)) {
-            //FIXME: Не нужно откатывать все изменения
-            revert(source, result);
-            break;
-        }
-
-        result.node = makeOperator(type, result.node, new.node);
-        result.read += new.read;
-    }
-
-    return result;
+    return rules;
 }
 
-build_result_t tryBuildTerm(stack_t *source) { // NOLINT(misc-no-recursion)
-    build_result_t result = failure(), new;
-
-    new = tryBuildFactor(source);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    set(&result, new);
-
-    while (source->size != 0) {
-        new = tryBuildByTokenType(source, BIN_MULTIPLY);
-        if (!isSuccess(new)) {
-            break;
-        }
-        add(&result, new);
-
-        enum token_type type = new.node->token.type;
-
-        new = tryBuildTerm(source);
-        if (!isSuccess(new)) {
-            //FIXME: Не нужно откатывать все изменения
-            revert(source, result);
-            break;
-        }
-
-        result.node = makeOperator(type, result.node, new.node);
-        result.read += new.read;
-    }
-
-    return result;
+build_result_t buildByRules(builder_t **rules, stack_t *source) {
+    builder_t *builder = node(NN_EXPRESSION, rules);
+    return builder->build(builder, source);
 }
-
-build_result_t tryBuildFactor(stack_t *source) { // NOLINT(misc-no-recursion)
-    return tryBuildPrimary(source);
-}
-
-build_result_t tryBuildPrimary(stack_t *source) { // NOLINT(misc-no-recursion)
-    build_result_t result = failure(), new;
-
-    new = tryBuildNumber(source);
-    if (isSuccess(new)) return new;
-
-    new = tryBuildByTokenType(source, OPEN_PAR);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    add(&result, new);
-
-    new = tryBuildExpression(source);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    set(&result, new);
-
-    new = tryBuildByTokenType(source, CLOSE_PAR);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    add(&result, new);
-
-    return result;
-}
-
-build_result_t tryBuildNumber(stack_t *source) {
-    build_result_t result = failure(), new;
-
-    new = tryBuildByTokenType(source, NUMBER);
-    if (!isSuccess(new)) {
-        revert(source, result);
-        return failure();
-    }
-    set(&result, new);
-
-    return result;
-}
-
-build_result_t tryBuildByTokenType(stack_t *source, enum token_type type) {
-    if (source->size == 0) return failure();
-
-    token_t token = *front(source);
-    if (token.type != type) return failure();
-
-    pop(source);
-    return success(1, nodeFromToken(token));
-}
-
-void test(const char *input, const char *expected);
 
 int main() {
-    test("1 + 2      ", "+ 1 2");
-    test("1 + 2 * 3  ", "+ 1 * 2 3");
-    test("1 + (2 * 3)", "+ 1 * 2 3");
-    test("(1 + 2) * 3", "* + 1 2 3");
-    test("1 + 2 + 3  ", "+ + 1 2 3");
-    test("1 + (2 + 3)", "+ 1 + 2 3");
-    test("1 + 2 + 3  ", "+ + 1 2 3");
-    test("1 + 2 + 3) ", "error");
-    test("1 + (2 + 3 ", "error");
-    test("1 + 2 3 ", "error");
-    test("1 * 2 3 ", "error");
-    test("1 + 2 * 3 ", "+ 1 * 2 3");
+    builder_t *rules[NN_COUNT_OF_NAMES] = {};
+    createRules(rules);
+
+    test("1 + 2      ", "[[[[1]]] + [[[2]]]]", rules);
+    test("1 + 2 * 3  ", "[[[[1]]] + [[[2]] * [[3]]]]", rules);
+    test("1 + (2 * 3)", "[[[[1]]] + [[[( [[[[2]] * [[3]]]] )]]]]", rules);
+    test("(1 + 2) * 3", "[[[[( [[[[1]]] + [[[2]]]] )]] * [[3]]]]", rules);
+    test("1 + 2 + 3  ", "[[[[1]]] + [[[2]]] + [[[3]]]]", rules);
+    test("1 + (2 + 3)", "[[[[1]]] + [[[( [[[[2]]] + [[[3]]]] )]]]]", rules);
+    test("1 + 2 + 3) ", "error", rules);
+    test("1 + (2 + 3 ", "error", rules);
+    test("1 + 2 3    ", "error", rules);
+    test("1 * 2 3    ", "error", rules);
 }
 
 static int testNumber = 0;
 
-char *rebuildToPolish(const char *input, char *buffer, int bufferSize) {
-    source_t *source = construct_source(malloc(sizeof(stack_t)), input);
+char *rebuildWithAst(const char *input, char *buffer, int bufferSize, builder_t **rules) {
+    stack_t *stack = parseAllTokens(input);
 
-    stack_t *stack = construct_stack(malloc(sizeof(stack_t)));
-    do {
-        push(stack, parseToken(source));
-        //printToken(*front(stack));
-    } while (front(stack)->type != END);
-    reverse_stack(stack);
-
-    build_result_t result = tryBuildExpression(stack);
+    build_result_t result = buildByRules(rules, stack);
 
     if (stack->size == 1) {
         FILE *out = tmpfile();
@@ -185,7 +82,6 @@ char *rebuildToPolish(const char *input, char *buffer, int bufferSize) {
     }
 
     free_stack(stack);
-    free(source);
 
     return buffer;
 }
@@ -198,10 +94,10 @@ char *lightTrimRight(char *str) {
     return str;
 }
 
-void test(const char *input, const char *expected) {
+void test(const char *input, const char *expected, builder_t **rules) {
     char out[100];
     printf("Test %2d: ", testNumber);
-    rebuildToPolish(input, out, _countof(out));
+    rebuildWithAst(input, out, _countof(out), rules);
     lightTrimRight(out);
 
     if (strcmp(out, expected) == 0) {
@@ -211,4 +107,18 @@ void test(const char *input, const char *expected) {
     }
 
     testNumber++;
+}
+
+stack_t *parseAllTokens(const char *input) {
+    source_t *source = construct_source(malloc(sizeof(stack_t)), input);
+
+    stack_t *stack = construct_stack(malloc(sizeof(stack_t)));
+    do {
+        push(stack, parseToken(source));
+    } while (front(stack)->type != END);
+    reverse_stack(stack);
+
+    free(source);
+
+    return stack;
 }

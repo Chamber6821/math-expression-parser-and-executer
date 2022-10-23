@@ -7,24 +7,26 @@ void printToken(token_t token, FILE *out) {
 }
 
 void printNode(node_t *node, FILE *out) { // NOLINT(misc-no-recursion)
-    switch (node->type) {
-        case NT_ADD: {
-            fprintf(out, "+ ");
-            printNode(node->children[0], out);
-            printNode(node->children[1], out);
-            break;
-        }
-        case NT_MULTIPLY: {
-            fprintf(out, "* ");
-            printNode(node->children[0], out);
-            printNode(node->children[1], out);
-            break;
-        }
-        case NT_TOKEN: {
-            printToken(node->token, out);
-            fprintf(out, " ");
-            break;
-        }
+    if (node == NULL) {
+        fprintf(out, "NULL");
+        return;
     }
-}
 
+    if (hasToken(node)) {
+        printToken(node->token, out);
+        return;
+    }
+
+    if (node->children->size == 0) {
+        fprintf(out, "[]");
+        return;
+    }
+
+    fprintf(out, "[");
+    printNode(node->children->items[0], out);
+    for (int i = 1; i < node->children->size; i++) {
+        fprintf(out, " ");
+        printNode(node->children->items[i], out);
+    }
+    fprintf(out, "]");
+}
