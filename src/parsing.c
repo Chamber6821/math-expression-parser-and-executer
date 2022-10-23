@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <ctype.h>
+#include <malloc.h>
 #include "parsing.h"
 
 source_t *skipSpaces(source_t *source) {
@@ -35,4 +36,18 @@ token_t parseToken(source_t *source) {
     }
 
     return onlyType(END);
+}
+
+stack_t *parseAllTokens(const char *input) {
+    source_t *source = construct_source(malloc(sizeof(stack_t)), input);
+
+    stack_t *stack = construct_stack(malloc(sizeof(stack_t)));
+    do {
+        push(stack, parseToken(source));
+    } while (front(stack)->type != END);
+    reverse_stack(stack);
+
+    free(source);
+
+    return stack;
 }

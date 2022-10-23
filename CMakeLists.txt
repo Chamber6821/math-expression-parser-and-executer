@@ -4,5 +4,10 @@ project(polish_notation_for_big_numbers)
 set(CMAKE_C_STANDARD 17)
 
 file(GLOB_RECURSE SOURCES "src/*.c")
-add_executable(${PROJECT_NAME} ${SOURCES})
+file(GLOB_RECURSE TEST_SOURCES "test/*.c")
+
+add_executable(${PROJECT_NAME} ${SOURCES} ./main.c)
 target_include_directories(${PROJECT_NAME} PUBLIC include)
+
+add_executable(${PROJECT_NAME}-test ${SOURCES} ${TEST_SOURCES})
+target_include_directories(${PROJECT_NAME}-test PUBLIC include)
