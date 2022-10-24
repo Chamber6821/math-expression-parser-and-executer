@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.23)
-project(polish_notation_for_big_numbers)
+project(math-expression-parser-and-executer)
 
 set(CMAKE_C_STANDARD 17)
 
