@@ -6,3 +6,5 @@
      _a > _b ? _a : _b; })
 
 #define STATIC_MAX(a, b) ((a) > (b) ? (a) : (b))
+
+char *lower(char *str);
