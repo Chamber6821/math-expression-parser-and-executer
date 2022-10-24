@@ -14,7 +14,7 @@ enum node_name {
     NN_TERM,
     NN_FACTOR,
     NN_PRIMARY,
-    NN_NUMBER,
+    NN_FUNCTION,
     NN_COUNT_OF_NAMES,
 };
 

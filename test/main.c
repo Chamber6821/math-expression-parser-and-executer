@@ -27,6 +27,8 @@ int main() {
     test("1 + (2 + 3 ", "error", rules);
     test("1 + 2 3    ", "error", rules);
     test("1 * 2 3    ", "error", rules);
+    test("sin(0)", "[[[[[sin ( [[[[0]]]] )]]]]]", rules);
+    test("cos(1 * 8)", "[[[[[cos ( [[[[1]] * [[8]]]] )]]]]]", rules);
 }
 
 char *rebuildWithAst(const char *input, char *buffer, int bufferSize, builder_t **rules) {

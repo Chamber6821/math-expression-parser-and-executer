@@ -9,6 +9,33 @@ source_t *skipSpaces(source_t *source) {
     return source;
 }
 
+static token_t tryParseNumber(source_t *source) {
+    token_number_t value;
+    int read = 0;
+    if (1 == sscanf_s(source->marker, "%lf%n", &value, &read)) {
+        source->marker += read;
+        return number(value);
+    }
+
+    return onlyType(END);
+}
+
+token_t tryParseFunction(source_t *source) {
+    token_t result = onlyType(FUNCTION_NAME);
+
+    int read = 0;
+    while (isalpha(source->marker[read]) && read < _countof(result.function) - 1) {
+        result.function[read] = source->marker[read];
+        read++;
+    }
+    result.function[read] = 0;
+
+    if (read == 0) return onlyType(END);
+
+    source->marker += read;
+    return result;
+}
+
 token_t parseToken(source_t *source) {
     skipSpaces(source);
 
@@ -30,13 +57,13 @@ token_t parseToken(source_t *source) {
         }
     }
 
-    token_number_t value;
-    int read = 0;
-    int scanned = sscanf_s(source->marker, "%lf%n", &value, &read);
-    if (scanned >= 1) {
-        source->marker += read;
-        return number(value);
-    }
+    token_t token;
+
+    token = tryParseNumber(source);
+    if (token.type != END) return token;
+
+    token = tryParseFunction(source);
+    if (token.type != END) return token;
 
     return onlyType(END);
 }

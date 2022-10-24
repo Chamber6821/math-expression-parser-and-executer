@@ -20,12 +20,19 @@ builder_t **createRules(builder_t **rules) {
 
     rules[NN_FACTOR] = node(NN_PRIMARY, rules);
 
-    rules[NN_PRIMARY] = or(2,
+    rules[NN_PRIMARY] = or(3,
                            token(NUMBER),
+                           node(NN_FUNCTION, rules),
                            seq(3,
                                token(OPEN_PAR),
                                node(NN_EXPRESSION, rules),
                                token(CLOSE_PAR)));
+
+    rules[NN_FUNCTION] = seq(4,
+                             token(FUNCTION_NAME),
+                             token(OPEN_PAR),
+                             node(NN_EXPRESSION, rules),
+                             token(CLOSE_PAR));
 
     return rules;
 }

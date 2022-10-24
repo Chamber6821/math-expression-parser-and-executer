@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <string.h>
 #include "to-string.h"
 
 const char *tokenToString(token_t token, char *buffer) {
@@ -12,6 +13,7 @@ const char *tokenToString(token_t token, char *buffer) {
         case END: return "<-";
         case BIN_ADD: return "+";
         case BIN_MULTIPLY: return "*";
+        case FUNCTION_NAME: return strcpy(buffer, token.function);
         default: return "NOT-DEFINED-TOKEN-TYPE";
     }
 }
